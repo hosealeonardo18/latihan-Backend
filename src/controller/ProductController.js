@@ -1,85 +1,118 @@
-// dummy data
-let products = [{
-        id: 1,
-        name: "Kemeja Lengan Pendek",
-        price: 50000,
-        stock: 20
-    },
-    {
-        id: 2,
-        name: "Celana Jeans",
-        price: 150000,
-        stock: 10
-    },
-    {
-        id: 3,
-        name: "Hoodie",
-        price: 100000,
-        stock: 15
-    }
-]
+const productModel = require('../model/ProductModel');
+const helper = require('../helper/common');
 
 let productController = {
-    getAllProduct: (req, res) => {
-        res.send(products);
-    },
-
-    getDetailProduct: (req, res) => {
-        const id = Number(req.params.id);
-        let product = products.find(products => products.id === id)
-        res.send(product)
-    },
-
-    createProduct: (req, res) => {
-        const {
-            name,
-            price,
-            stock
-        } = req.body;
-
-        let newProduct = {
-            id: products.length + 1,
-            name,
-            price,
-            stock
+    getAllProduct: async (req, res) => {
+        try {
+            const result = await productModel.selectAllProducts();
+            helper.response(res, result.rows, 200, "Get Data Success!");
+        } catch (error) {
+            console.log(error);
         }
-
-        products.push(newProduct);
-        res.json({
-            message: "Product Created!"
-        });
     },
 
-    updateProduct: (req, res) => {
+    getDetailProduct: async (req, res) => {
         const id = Number(req.params.id);
+        const {
+            rowCount
+        } = await productModel.findId(id);
+
+        if (!rowCount) {
+            res.json({
+                message: 'Product Not Found!'
+            })
+        }
+        productModel.selectDetailProducts(id).then((result) => {
+            helper.response(res, result.rows[0], 200, 'Get Data Success!')
+        }).catch(error => {
+            res.send(error);
+        })
+    },
+
+    createProduct: async (req, res) => {
         const {
             name,
             price,
             stock
         } = req.body;
-        const index = products.findIndex(products => products.id === id)
+        const {
+            rows: [count]
+        } = await productModel.countData();
 
-        let updateProduct = {
-            id: products[index].id,
+        const id = Number(count.count) + 2
+        let data = {
+            id,
             name,
             price,
             stock
         };
 
-        products[index] = updateProduct;
-        res.json({
-            message: "Product Updated!"
-        });
+        productModel.createProducts(data).then((result) => {
+            helper.response(res, result.rows, 201, 'Product Created!')
+        }).catch(error => {
+            res.send(error);
+        })
+
     },
 
-    deleteProduct: (req, res) => {
-        const id = Number(req.params.id);
-        const index = products.findIndex(products => products.id === id)
+    updateProduct: async (req, res) => {
+        try {
+            const id = Number(req.params.id);
+            const {
+                name,
+                price,
+                stock
+            } = req.body;
+            const {
+                rowCount
+            } = await productModel.findId(id);
 
-        products.splice(index, 1)
-        res.json({
-            message: "Product Deleted!"
-        });
+            if (!rowCount) {
+                res.json({
+                    message: 'Product Not Found!'
+                })
+            }
+
+            let data = {
+                id,
+                name,
+                price,
+                stock
+            };
+
+            productModel.updateProducts(data).then((result) => {
+                helper.response(res, result.rows, 200, 'Product Updated!')
+            }).catch(error => {
+                res.send(error);
+            })
+
+        } catch (error) {
+
+        }
+    },
+
+    deleteProduct: async (req, res) => {
+        try {
+            const id = Number(req.params.id);
+            const {
+                rowCount
+            } = await productModel.findId(id);
+
+            if (!rowCount) {
+                res.json({
+                    message: 'Product Not Found!'
+                })
+            }
+
+            productModel.deleteProducts(id).then((result) => {
+                helper.response(res, result.rows, 200, 'Product Deleted!')
+            }).catch(error => {
+                res.send(error);
+            })
+
+        } catch (error) {
+            console.log(error);
+        }
     }
 };
 
